@@ -16,7 +16,7 @@
 
 
 from dataclasses import dataclass
-from logging import INFO
+from logging import ERROR, INFO
 from typing import Dict, Optional, Tuple, Union
 
 from flwr.common import GRPC_MAX_MESSAGE_LENGTH
@@ -140,9 +140,16 @@ def start_server(  # pylint: disable=too-many-arguments
     )
 
     # Stop the gRPC server
-    grpc_server.stop(grace=1)
+    stop_gRPC_server(grpc_server)
 
     return hist
+
+### added by VL ###
+def stop_gRPC_server(grpc_server):
+        # Stop the gRPC server
+        log(INFO, "Server is going to shut down") # added by VL
+        grpc_server.stop(grace=1)
+### added by VL ###
 
 
 def _init_defaults(
@@ -175,10 +182,11 @@ def _fl(
 ) -> History:
     # Fit model
     hist = server.fit(num_rounds=config.num_rounds, timeout=config.round_timeout)
-    log(INFO, "app_fit: losses_distributed %s", str(hist.losses_distributed))
-    log(INFO, "app_fit: metrics_distributed %s", str(hist.metrics_distributed))
-    log(INFO, "app_fit: losses_centralized %s", str(hist.losses_centralized))
-    log(INFO, "app_fit: metrics_centralized %s", str(hist.metrics_centralized))
+    ### following put in comment by VL ###
+    # log(INFO, "app_fit: losses_distributed %s", str(hist.losses_distributed))
+    # log(INFO, "app_fit: metrics_distributed %s", str(hist.metrics_distributed))
+    # log(INFO, "app_fit: losses_centralized %s", str(hist.losses_centralized))
+    # log(INFO, "app_fit: metrics_centralized %s", str(hist.metrics_centralized))
 
     if force_final_distributed_eval:
         # Temporary workaround to force distributed evaluation
@@ -199,6 +207,12 @@ def _fl(
             log(INFO, "app_evaluate: no evaluation result")
 
     # Graceful shutdown
-    server.disconnect_all_clients(timeout=config.round_timeout)
+    ### added by VL ###
+    try:
+        server.disconnect_all_clients()
+    except:
+        log(ERROR, "An error occurred during the disconnection of all the clients")
+    else:
+        log(INFO, "Clients have been successfully disconnected")
 
     return hist

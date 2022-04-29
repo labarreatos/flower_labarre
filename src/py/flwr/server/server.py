@@ -17,7 +17,7 @@
 
 import concurrent.futures
 import timeit
-from logging import DEBUG, INFO
+from logging import DEBUG, ERROR, INFO
 from typing import Dict, List, Optional, Tuple
 
 from flwr.common import (
@@ -173,14 +173,31 @@ class Server:
             len(results),
             len(failures),
         )
+        
+        ### Added by VL ###
+        acc_aggr = compute_results([r.metrics["accuracy"] * r.num_examples for _, r in results],
+                                     self.strategy.get_list_accuracies_complete(),
+                                    [r.num_examples for _, r in results]
+                                    )
+        
+        if acc_aggr > self.strategy.get_acc_threshold():
+            self.disconnect_all_clients()
+        ### End VL ###
 
         # Aggregate the evaluation results
         aggregated_result: Tuple[
             Optional[float],
             Dict[str, Scalar],
         ] = self.strategy.aggregate_evaluate(rnd, results, failures)
-
-        loss_aggregated, metrics_aggregated = aggregated_result
+        
+        ### added by VL
+        metrics_aggregated: Dict[str, Scalar] = {}
+        if aggregated_result == -1: # a not-achieved round
+            loss_aggregated, metrics_aggregated = (-1, {}), {'accuracy': '-1%', 'precision': '-1%', 'recall': '-1%', 'f1': '-1%'}
+        else:
+            loss_aggregated, metrics_aggregated = aggregated_result
+        ### End VL ###
+        
         return loss_aggregated, metrics_aggregated, (results, failures)
 
     def fit_round(
@@ -378,3 +395,20 @@ def evaluate_client(
     """Evaluate parameters on a single client."""
     evaluate_res = client.evaluate(ins, timeout=timeout)
     return client, evaluate_res
+
+### Added by VL
+def compute_results(list_to_use,  list_to_use_complete = [], list_examples = []):
+    '''
+    Input:
+        list_to_use: list with values to avg
+        list_to_use_complete: list with values to keep
+    Outputs:
+        avg value
+        '''
+    if list_to_use == []:
+            log(ERROR, msg="List given as input is empty")
+            return -1
+    if list_to_use_complete == []:
+        return round(sum(list_to_use) / len(list_to_use), 2)
+    else: 
+        return round(sum(list_to_use) * 100 / sum(list_examples), 2)

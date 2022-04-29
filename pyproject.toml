@@ -12,7 +12,7 @@ license = "Apache-2.0"
 authors = ["The Flower Authors <enquiries@flower.dev>"]
 readme = "README.md"
 homepage = "https://flower.dev"
-repository = "https://github.com/adap/flower"
+repository = "https://github.com/labarreatos/flower_labarre"
 documentation = "https://flower.dev"
 classifiers = [
     "Development Status :: 4 - Beta",

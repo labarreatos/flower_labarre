@@ -67,22 +67,23 @@ class ClientManager(ABC):
 class SimpleClientManager(ClientManager):
     """Provides a pool of available clients."""
 
-    def __init__(self) -> None:
+    def __init__(self, timeout=86400) -> None:
+        self.timeout = timeout # by default one day
         self.clients: Dict[str, ClientProxy] = {}
         self._cv = threading.Condition()
 
     def __len__(self) -> int:
         return len(self.clients)
 
-    def wait_for(self, num_clients: int, timeout: int = 86400) -> bool:
+    def wait_for(self, num_clients: int) -> bool:
         """Block until at least `num_clients` are available or until a timeout
         is reached.
 
-        Current timeout default: 1 day.
+        Current timeout default: 1 day (86400)
         """
         with self._cv:
             return self._cv.wait_for(
-                lambda: len(self.clients) >= num_clients, timeout=timeout
+                lambda: len(self.clients) >= num_clients,timeout=self.timeout
             )
 
     def num_available(self) -> int:
