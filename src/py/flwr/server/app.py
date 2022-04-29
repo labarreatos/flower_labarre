@@ -209,7 +209,7 @@ def _fl(
     # Graceful shutdown
     ### added by VL ###
     try:
-        server.disconnect_all_clients()
+        server.disconnect_all_clients(timeout=1)
     except:
         log(ERROR, "An error occurred during the disconnection of all the clients")
     else:
